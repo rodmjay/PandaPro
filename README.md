@@ -9,7 +9,7 @@ PandaGame is a turn-based, grid-based strategy game where players manage plants 
 - **Grid Size**: 8x8 by default.
 - **Base Cells**:
   - Cells start as `0` (empty).
-  - Numbers (`1`, `2`, `3`, etc.) represent plants at different growth stages.
+  - Numbers (`1`, `2`, etc.) represent plants at different growth stages.
   - Voids are obstacles where plants cannot be placed.
 
 ---
@@ -38,31 +38,10 @@ PandaGame is a turn-based, grid-based strategy game where players manage plants 
 ## Snapping Mechanics
 Snapping resolves when a valid **2x2 block** of the same number is formed. Two snapping types determine the outcome:
 
-### Large Snapping
-- **Effect**: All four cells in the 2x2 block upgrade to the next higher number.
+### Dynamic Snapping
+- **Effect**: The **last placed cell** in the 2x2 block is upgraded to the next higher number. All other cells in the block are cleared (reset to `0`).
 - **Example**:
-  ```
-  Before Large Snap:
-  1 | 1
-  1 | 1
-  After Large Snap:
-  2 | 2
-  2 | 2
-  ```
-
-### Small Snapping
-- **Effect**: Only the **last planted cell** in the 2x2 block upgrades to the next higher number. The other three cells reset to `0`.
-- **Example**:
-  ```
-  Before Small Snap:
-  1 | 1
-  1 | 1
-  (Last planted cell: bottom-right)
-  After Small Snap:
-  0 | 0
-  0 | 2
-  ```
-
+Before Snap: 1 | 1 1 | 1 (Last placed cell: bottom-right) After Snap: 0 | 0 0 | 2
 ---
 
 ## Triggered Collapses
@@ -70,82 +49,83 @@ A **triggered collapse** occurs when snapping creates a chain reaction, potentia
 
 ### Resolving Larger Blocks
 1. **Break Into Sub-Blocks**:
-   - Larger blocks are divided into distinct **2x2 sub-blocks**.
-   - Sub-blocks are resolved based on **priority rules**:
-     - **Top-Left Priority**: Start from the top-left and resolve left-to-right, top-to-bottom.
+ - Larger blocks are divided into distinct **2x2 sub-blocks**.
+ - Sub-blocks are resolved based on **priority rules**:
+   - **Last Placed Priority**: The cell last clicked within a block gets upgraded.
 
 2. **Cascading**:
-   - If resolving a larger block creates new valid 2x2 blocks, these are processed recursively.
-   - Cascading continues until no further 2x2 blocks are formed.
+ - If resolving a larger block creates new valid 2x2 blocks, these are processed recursively.
+ - Cascading continues until no further 2x2 blocks are formed.
 
 ### Voids in Collapses
 - Voids prevent snapping within larger blocks, splitting them into smaller, resolvable parts.
 - **Example**:
-  ```
-  Before Collapse with Voids:
-  1 | 1 | 1
-  1 | V | 1
-  1 | 1 | 1
+Before Collapse with Voids: 1 | 1 | 1 1 | V | 1 1 | 1 | 1
 
-  After Collapse:
-  2 | 2 | 1
-  2 | V | 1
-  1 | 1 | 1
-  ```
+After Collapse: 2 | 2 | 1 2 | V | 1 1 | 1 | 1
+
 
 ---
 
 ## Configurable Gameplay Settings
 
 ### Snapping Configuration
-1. **Snapping Type**:
-   - Large Snapping (all four cells upgrade).
-   - Small Snapping (only the last planted cell upgrades).
+1. **Snapping Behavior**:
+ - Always upgrades the **last placed cell** in a 2x2 block.
+ - Clears all other cells in the block (set to `0`).
 2. **Cascading Depth**:
-   - Limit the maximum depth of cascades (e.g., 3).
-3. **Trigger Rules**:
-   - Always enabled or condition-based (e.g., score thresholds).
+ - Limit the maximum depth of cascades (e.g., 3).
 
 ### Grid Setup
 1. **Grid Size**:
-   - Default: 8x8.
-   - Adjustable for advanced levels (e.g., 10x10).
+ - Default: 8x8.
+ - Adjustable for advanced levels (e.g., 10x10).
 2. **Initial Layout**:
-   - Define starting plants, voids, and blocked cells.
+ - Define starting plants, voids, and blocked cells.
 
 ### Voids
 1. **Static Voids**:
-   - Fixed void positions that never change.
+ - Fixed void positions that never change.
 2. **Dynamic Voids**:
-   - Voids can move or expand based on game events.
+ - Voids can move or expand based on game events.
 
 ### Scoring
 1. **Snapping Rewards**:
-   - Large Snap: Higher points for upgrading all cells.
-   - Small Snap: Bonus for strategic placement.
+ - Increment points for each successful snap.
 2. **Cascading Bonuses**:
-   - Exponential score increases for deeper cascades.
+ - Exponential score increases for deeper cascades.
 3. **Destruction Penalty**:
-   - Deduct points for destroying plants.
+ - Deduct points for destroying plants.
 
 ---
 
 ## Visual Feedback
 1. **Highlight Snapping Areas**:
-   - Glow effects for Large and Small Snapping.
+ - Glow effects for valid snapping blocks.
 2. **Cascade Animation**:
-   - Ripple effects to indicate triggered collapses.
+ - Ripple effects to indicate triggered collapses.
 3. **Voids**:
-   - Unique sprites for voids to differentiate them from other cells.
+ - Unique sprites for voids to differentiate them from other cells.
 
 ---
 
 ## Level Design Flexibility
 1. **Dynamic Challenges**:
-   - Time limits, move limits, or special goals (e.g., clear X voids).
+ - Time limits, move limits, or special goals (e.g., clear X voids).
 2. **Snapping as a Tool**:
-   - Use Large or Small Snapping selectively to adjust difficulty.
+ - Use snapping selectively to adjust difficulty.
 3. **Progression**:
-   - Early levels: Small Snapping, minimal voids.
-   - Advanced levels: Large Snapping, dynamic voids, tighter space.
+ - Early levels: Limited voids, small grid sizes.
+ - Advanced levels: Complex void patterns, larger grids, tighter space.
 
+---
+
+## Updated Gameplay Rules
+1. **Next Plant Restriction**:
+ - The next plant is restricted to numbers `1` and `2`. No higher numbers will appear in the queue.
+2. **Last Placed Cell Priority**:
+ - The last placed cell in a **2x2 block** always receives the upgraded number.
+3. **Dynamic Cascading**:
+ - Snaps can chain-react dynamically, processing blocks recursively until no further snaps are possible.
+4. **Valid Snapping Behavior**:
+ - Only fully valid **2x2 blocks** will trigger snapping.
