@@ -17,9 +17,42 @@
 
         #game-container {
             display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        #game-area {
+            display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
+        }
+
+        #settings {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            border-radius: 5px;
+        }
+
+        #settings h3 {
+            margin-bottom: 10px;
+        }
+
+        #settings label {
+            margin: 5px 0;
+        }
+
+        #settings button {
+            margin-top: 10px;
+            padding: 10px 15px;
+            font-size: 1rem;
+            cursor: pointer;
         }
 
         #next-plant {
@@ -28,10 +61,14 @@
             margin-bottom: 10px;
         }
 
+        #next-plant-preview {
+            width: 50px;
+            height: 50px;
+            margin: 10px auto;
+        }
+
         #game-board {
             display: grid;
-            grid-template-columns: repeat(8, 50px);
-            grid-template-rows: repeat(8, 50px);
             gap: 5px;
             margin-bottom: 20px;
         }
@@ -39,7 +76,6 @@
         #game-board div {
             width: 50px;
             height: 50px;
-            background-color: #fff;
             border: 1px solid #ddd;
             display: flex;
             justify-content: center;
@@ -47,6 +83,18 @@
             font-size: 1.2rem;
             font-weight: bold;
             cursor: pointer;
+            position: relative;
+        }
+
+        .cursor {
+            border: 3px solid red;
+            background-color: rgba(255, 0, 0, 0.2);
+            box-sizing: border-box;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
         }
 
         #game-counter {
@@ -65,69 +113,175 @@
 </head>
 <body>
     <div id="game-container">
-        <div id="next-plant">Next Plant: <span id="next-plant-value"></span></div>
-        <div id="game-board"></div>
-        <div id="game-counter">Moves: <span id="move-counter">0</span></div>
-        <div id="game-over-message">Game Over: No more moves!</div>
+        <div id="game-area">
+            <div id="next-plant">
+                Next Plant:
+                <div id="next-plant-preview">
+                    <svg><use href="#sprite-1"></use></svg>
+                </div>
+            </div>
+            <div id="game-board"></div>
+            <div id="game-counter">Moves: <span id="move-counter">0</span></div>
+            <div id="game-over-message">Game Over: No more moves!</div>
+        </div>
+
+        <div id="settings">
+            <h3>Settings</h3>
+            <label>
+                Grid Size:
+                <input type="number" id="grid-size" value="8" min="4" max="20" />
+            </label>
+            <label>
+                Seeds for Sprites:
+            </label>
+            <label>
+                Bamboo Seedling (1):
+                <input type="number" id="seed-1" value="10" />
+            </label>
+            <label>
+                Bamboo Sprout (2):
+                <input type="number" id="seed-2" value="5" />
+            </label>
+            <label>
+                Bamboo Tree (3):
+                <input type="number" id="seed-3" value="3" />
+            </label>
+            <label>
+                Bamboo Hut (4):
+                <input type="number" id="seed-4" value="2" />
+            </label>
+            <button id="new-game-button">New Game</button>
+        </div>
     </div>
+
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+        <!-- Bamboo Seedling -->
+        <symbol id="sprite-1" viewBox="0 0 50 50">
+            <rect x="20" y="30" width="10" height="20" fill="green" />
+            <circle cx="25" cy="30" r="5" fill="lightgreen" />
+        </symbol>
+        <!-- Bamboo Sprout -->
+        <symbol id="sprite-2" viewBox="0 0 50 50">
+            <rect x="20" y="20" width="10" height="30" fill="green" />
+            <ellipse cx="25" cy="15" rx="10" ry="5" fill="lightgreen" />
+        </symbol>
+        <!-- Bamboo Tree -->
+        <symbol id="sprite-3" viewBox="0 0 50 50">
+            <rect x="18" y="10" width="14" height="40" fill="darkgreen" />
+            <circle cx="25" cy="5" r="10" fill="green" />
+        </symbol>
+        <!-- Bamboo Hut -->
+        <symbol id="sprite-4" viewBox="0 0 50 50">
+            <rect x="10" y="30" width="30" height="10" fill="brown" />
+            <polygon points="25,10 10,30 40,30" fill="green" />
+        </symbol>
+    </svg>
+
     <script>
         const gameBoard = document.getElementById('game-board');
-        const nextPlantDisplay = document.getElementById('next-plant-value');
+        const nextPlantPreview = document.getElementById('next-plant-preview');
         const moveCounterDisplay = document.getElementById('move-counter');
-        const gameOverMessage = document.getElementById('game-over-message');
-        const GRID_SIZE = 8;
+        const newGameButton = document.getElementById('new-game-button');
+        const gridSizeInput = document.getElementById('grid-size');
+        const seedInputs = {
+            1: document.getElementById('seed-1'),
+            2: document.getElementById('seed-2'),
+            3: document.getElementById('seed-3'),
+            4: document.getElementById('seed-4'),
+        };
+        let gridSize = 8;
         let grid = [];
-        let nextPlant = generateNextPlant();
         let moveCounter = 0;
-        let lastPlacedCell = { row: null, col: null }; // Track the last placed cell
+        let nextPlant = 1;
+        let cursorPosition = { row: 0, col: 0 };
+        let lastPlacedCell = { row: null, col: null };
 
-        // Initialize grid
         function initializeGrid() {
-            grid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
+            gridSize = parseInt(gridSizeInput.value) || 8;
+            grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(0));
+            gameBoard.style.gridTemplateColumns = `repeat(${gridSize}, 50px)`;
+            populateGridWithSeeds();
             renderGrid();
         }
 
-        // Generate the next plant (1 or 2)
-        function generateNextPlant() {
-            return Math.random() < 0.5 ? 1 : 2;
+        function populateGridWithSeeds() {
+            const availablePositions = [];
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    availablePositions.push({ row, col });
+                }
+            }
+
+            availablePositions.sort(() => Math.random() - 0.5);
+
+            for (let sprite = 1; sprite <= 4; sprite++) {
+                const count = parseInt(seedInputs[sprite].value) || 0;
+
+                for (let i = 0; i < count; i++) {
+                    if (availablePositions.length > 0) {
+                        const position = availablePositions.pop();
+                        grid[position.row][position.col] = sprite;
+                    }
+                }
+            }
         }
 
-        // Render the grid
         function renderGrid() {
             gameBoard.innerHTML = '';
             grid.forEach((row, rowIndex) => {
                 row.forEach((cell, colIndex) => {
                     const cellDiv = document.createElement('div');
                     if (cell !== 0) {
-                        cellDiv.textContent = cell.toString();
+                        cellDiv.innerHTML = `<svg><use href="#sprite-${cell}"></use></svg>`;
                     }
-                    cellDiv.dataset.row = rowIndex;
-                    cellDiv.dataset.col = colIndex;
-                    cellDiv.addEventListener('click', () => handleCellClick(rowIndex, colIndex));
+                    if (rowIndex === cursorPosition.row && colIndex === cursorPosition.col) {
+                        cellDiv.classList.add('cursor'); // Highlight cursor position
+                    }
+                    cellDiv.addEventListener('click', () => handleCellClick(rowIndex, colIndex)); // Mouse click functionality
                     gameBoard.appendChild(cellDiv);
                 });
             });
         }
 
-        // Handle cell click
         function handleCellClick(row, col) {
             if (grid[row][col] === 0) {
                 grid[row][col] = nextPlant;
-                lastPlacedCell = { row, col }; // Track this cell as the last placed
+                lastPlacedCell = { row, col };
                 moveCounter++;
-                moveCounterDisplay.textContent = moveCounter; // Update move counter
-                checkFor2x2Blocks(); // Process snapping
-                nextPlant = generateNextPlant();
-                nextPlantDisplay.textContent = nextPlant;
-                checkGameOver(); // Check if the game is over
+                moveCounterDisplay.textContent = moveCounter;
+                checkFor2x2Blocks();
+                nextPlant = Math.random() < 0.5 ? 1 : 2;
+                updateNextPlantPreview();
             }
+            cursorPosition = { row, col }; // Update cursor
             renderGrid();
         }
 
-        // Check for 2x2 blocks and transform them
+        function handleKeyPress(event) {
+            switch (event.key) {
+                case 'ArrowUp':
+                    cursorPosition.row = Math.max(0, cursorPosition.row - 1);
+                    break;
+                case 'ArrowDown':
+                    cursorPosition.row = Math.min(gridSize - 1, cursorPosition.row + 1);
+                    break;
+                case 'ArrowLeft':
+                    cursorPosition.col = Math.max(0, cursorPosition.col - 1);
+                    break;
+                case 'ArrowRight':
+                    cursorPosition.col = Math.min(gridSize - 1, cursorPosition.col + 1);
+                    break;
+                case 'Enter':
+                    handleCellClick(cursorPosition.row, cursorPosition.col);
+                    break;
+            }
+        }
+
         function checkFor2x2Blocks() {
-            for (let r = 0; r < GRID_SIZE - 1; r++) {
-                for (let c = 0; c < GRID_SIZE - 1; c++) {
+            let blockFormed = false;
+
+            for (let r = 0; r < gridSize - 1; r++) {
+                for (let c = 0; c < gridSize - 1; c++) {
                     const value = grid[r][c];
                     if (
                         value !== 0 &&
@@ -135,37 +289,47 @@
                         grid[r + 1][c] === value &&
                         grid[r + 1][c + 1] === value
                     ) {
-                        // Check if the last placed cell is part of this 2x2 block
+                        blockFormed = true;
+
                         if (
                             lastPlacedCell.row >= r &&
                             lastPlacedCell.row <= r + 1 &&
                             lastPlacedCell.col >= c &&
                             lastPlacedCell.col <= c + 1
                         ) {
-                            grid[lastPlacedCell.row][lastPlacedCell.col] = value + 1; // Upgrade last placed cell
+                            grid[lastPlacedCell.row][lastPlacedCell.col] = value + 1;
+                        } else {
+                            grid[r][c] = value + 1;
                         }
 
-                        // Clear the other cells in the 2x2 block
-                        if (!(lastPlacedCell.row === r && lastPlacedCell.col === c)) grid[r][c] = 0;
-                        if (!(lastPlacedCell.row === r && lastPlacedCell.col === c + 1)) grid[r][c + 1] = 0;
-                        if (!(lastPlacedCell.row === r + 1 && lastPlacedCell.col === c)) grid[r + 1][c] = 0;
-                        if (!(lastPlacedCell.row === r + 1 && lastPlacedCell.col === c + 1)) grid[r + 1][c + 1] = 0;
+                        const cellsToClear = [
+                            { row: r, col: c },
+                            { row: r, col: c + 1 },
+                            { row: r + 1, col: c },
+                            { row: r + 1, col: c + 1 },
+                        ];
+                        cellsToClear.forEach(({ row, col }) => {
+                            if (!(row === lastPlacedCell.row && col === lastPlacedCell.col)) {
+                                grid[row][col] = 0;
+                            }
+                        });
                     }
                 }
             }
-        }
 
-        // Check if the grid is full and no moves are possible
-        function checkGameOver() {
-            const isGridFull = grid.every(row => row.every(cell => cell !== 0));
-            if (isGridFull) {
-                gameOverMessage.style.display = 'block'; // Show "Game Over" message
+            if (blockFormed) {
+                checkFor2x2Blocks(); // Cascade
             }
         }
 
-        // Initialize game
+        function updateNextPlantPreview() {
+            nextPlantPreview.innerHTML = `<svg><use href="#sprite-${nextPlant}"></use></svg>`;
+        }
+
+        newGameButton.addEventListener('click', initializeGrid);
+        document.addEventListener('keydown', handleKeyPress);
+
         initializeGrid();
-        nextPlantDisplay.textContent = nextPlant;
     </script>
 </body>
 </html>
