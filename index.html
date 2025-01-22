@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PandaGame</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+
+        #game-board div {
+            width: 50px;
+            height: 50px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .hidden {
+            visibility: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-board"></div>
+        <div id="controls">
+            <button id="place-plant">Place Plant</button>
+            <div id="next-plant">Next Plant: <span id="next-plant-value"></span></div>
+        </div>
+    </div>
+    <script>
+        const gameBoard = document.getElementById('game-board');
+        const nextPlantDisplay = document.getElementById('next-plant-value');
+        const GRID_SIZE = 8;
+        let grid = [];
+        let nextPlant = generateNextPlant();
+        let lastPlacedCell = { row: null, col: null }; // Track the last placed cell
+
+        // Initialize grid
+        function initializeGrid() {
+            grid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
+            renderGrid();
+        }
+
+        // Generate the next plant (1 or 2)
+        function generateNextPlant() {
+            return Math.random() < 0.5 ? 1 : 2;
+        }
+
+        // Render the grid
+        function renderGrid() {
+            gameBoard.innerHTML = '';
+            grid.forEach((row, rowIndex) => {
+                row.forEach((cell, colIndex) => {
+                    const cellDiv = document.createElement('div');
+                    if (cell !== 0) {
+                        cellDiv.textContent = cell.toString();
+                    }
+                    cellDiv.dataset.row = rowIndex;
+                    cellDiv.dataset.col = colIndex;
+                    cellDiv.addEventListener('click', () => handleCellClick(rowIndex, colIndex));
+                    gameBoard.appendChild(cellDiv);
+                });
+            });
+        }
+
+        // Handle cell click
+        function handleCellClick(row, col) {
+            if (grid[row][col] === 0) {
+                grid[row][col] = nextPlant;
+                lastPlacedCell = { row, col }; // Track this cell as the last placed
+                checkFor2x2Blocks(); // Process snapping
+                nextPlant = generateNextPlant();
+                nextPlantDisplay.textContent = nextPlant;
+            }
+            renderGrid();
+        }
+
+        // Check for 2x2 blocks and transform them
+        function checkFor2x2Blocks() {
+            for (let r = 0; r < GRID_SIZE - 1; r++) {
+                for (let c = 0; c < GRID_SIZE - 1; c++) {
+                    const value = grid[r][c];
+                    if (
+                        value !== 0 &&
+                        grid[r][c + 1] === value &&
+                        grid[r + 1][c] === value &&
+                        grid[r + 1][c + 1] === value
+                    ) {
+                        // Check if the last placed cell is part of this 2x2 block
+                        if (
+                            lastPlacedCell.row >= r &&
+                            lastPlacedCell.row <= r + 1 &&
+                            lastPlacedCell.col >= c &&
+                            lastPlacedCell.col <= c + 1
+                        ) {
+                            grid[lastPlacedCell.row][lastPlacedCell.col] = value + 1; // Upgrade last placed cell
+                        }
+
+                        // Clear the other cells in the 2x2 block
+                        if (!(lastPlacedCell.row === r && lastPlacedCell.col === c)) grid[r][c] = 0;
+                        if (!(lastPlacedCell.row === r && lastPlacedCell.col === c + 1)) grid[r][c + 1] = 0;
+                        if (!(lastPlacedCell.row === r + 1 && lastPlacedCell.col === c)) grid[r + 1][c] = 0;
+                        if (!(lastPlacedCell.row === r + 1 && lastPlacedCell.col === c + 1)) grid[r + 1][c + 1] = 0;
+                    }
+                }
+            }
+        }
+
+        // Initialize game
+        initializeGrid();
+        nextPlantDisplay.textContent = nextPlant;
+    </script>
+</body>
+</html>
