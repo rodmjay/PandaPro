@@ -53,6 +53,14 @@
             font-size: 1.2rem;
             margin-top: 10px;
         }
+
+        #game-over-message {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: red;
+            margin-top: 15px;
+            display: none; /* Initially hidden */
+        }
     </style>
 </head>
 <body>
@@ -60,11 +68,13 @@
         <div id="next-plant">Next Plant: <span id="next-plant-value"></span></div>
         <div id="game-board"></div>
         <div id="game-counter">Moves: <span id="move-counter">0</span></div>
+        <div id="game-over-message">Game Over: No more moves!</div>
     </div>
     <script>
         const gameBoard = document.getElementById('game-board');
         const nextPlantDisplay = document.getElementById('next-plant-value');
         const moveCounterDisplay = document.getElementById('move-counter');
+        const gameOverMessage = document.getElementById('game-over-message');
         const GRID_SIZE = 8;
         let grid = [];
         let nextPlant = generateNextPlant();
@@ -109,6 +119,7 @@
                 checkFor2x2Blocks(); // Process snapping
                 nextPlant = generateNextPlant();
                 nextPlantDisplay.textContent = nextPlant;
+                checkGameOver(); // Check if the game is over
             }
             renderGrid();
         }
@@ -141,6 +152,14 @@
                         if (!(lastPlacedCell.row === r + 1 && lastPlacedCell.col === c + 1)) grid[r + 1][c + 1] = 0;
                     }
                 }
+            }
+        }
+
+        // Check if the grid is full and no moves are possible
+        function checkGameOver() {
+            const isGridFull = grid.every(row => row.every(cell => cell !== 0));
+            if (isGridFull) {
+                gameOverMessage.style.display = 'block'; // Show "Game Over" message
             }
         }
 
